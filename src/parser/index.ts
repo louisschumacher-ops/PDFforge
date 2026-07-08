@@ -5,10 +5,20 @@ export interface ParsedNode {
   metadata: Record<string, unknown>;
 }
 
+export interface EdgeStyle {
+  color: string;
+  /** Reference line width at scale 1; render scales it like every other size. */
+  width: number;
+  dashed: boolean;
+}
+
+export const DEFAULT_EDGE_STYLE: EdgeStyle = { color: "#333333", width: 1, dashed: false };
+
 export interface ParsedEdge {
   id: string;
   source: string;
   target: string;
+  style: EdgeStyle;
 }
 
 export interface ParsedGroup {
@@ -31,10 +41,17 @@ interface RawNode {
   // position/x/y intentionally not read
 }
 
+interface RawEdgeStyle {
+  color?: string;
+  width?: number;
+  dashed?: boolean;
+}
+
 interface RawEdge {
   id: string;
   source: string;
   target: string;
+  style?: RawEdgeStyle;
 }
 
 interface RawGroup {
@@ -67,6 +84,11 @@ export function parse(raw: unknown): ParsedModel {
     id: edge.id,
     source: edge.source,
     target: edge.target,
+    style: {
+      color: edge.style?.color ?? DEFAULT_EDGE_STYLE.color,
+      width: edge.style?.width ?? DEFAULT_EDGE_STYLE.width,
+      dashed: edge.style?.dashed ?? DEFAULT_EDGE_STYLE.dashed,
+    },
   }));
 
   const groups: ParsedGroup[] = (source.groups ?? []).map((group) => ({

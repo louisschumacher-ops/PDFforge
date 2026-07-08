@@ -1,0 +1,43 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "grid-connection",
+      "label": "Netzanschlusspunkt",
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "n2",
+      "type": "transformer",
+      "label": "Transformator",
+      "position": { "x": 999, "y": 999 }
+    },
+    {
+      "id": "n3",
+      "type": "distribution-board",
+      "label": "Niederspannungshauptverteilung",
+      "position": { "x": -50, "y": 300 }
+    },
+    { "id": "n4", "type": "consumer", "label": "Verbraucher", "position": { "x": 10, "y": 10 } },
+    { "id": "n5", "type": "pv-system", "label": "PV-Anlage", "position": { "x": 20, "y": 20 } },
+    {
+      "id": "n6",
+      "type": "battery-storage",
+      "label": "Batteriespeicher",
+      "position": { "x": 30, "y": 30 }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" },
+    { "id": "e3", "source": "n3", "target": "n4" },
+    {
+      "id": "e4",
+      "source": "n3",
+      "target": "n5",
+      "style": { "color": "#2563eb", "width": 2, "dashed": true }
+    },
+    { "id": "e5", "source": "n3", "target": "n6", "style": { "color": "#dc2626", "width": 1.5 } }
+  ],
+  "groups": [{ "id": "g1", "label": "Vor-Ort-Verbrauch", "nodeIds": ["n4", "n5"] }]
+}
