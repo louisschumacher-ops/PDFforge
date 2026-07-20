@@ -1,10 +1,11 @@
 import type { GridPosition, LayoutResult } from "../layout/index.js";
 import {
-  REFERENCE_CELL_SIZE,
-  REFERENCE_NODE_INSET,
+  resolveGridDensity,
+  resolveNodeFillFactor,
   resolvePageSize,
   scaled,
   type Margins,
+  type NodeFillFactor,
   type PageSize,
   type RenderConfig,
 } from "../config/index.js";
@@ -19,9 +20,12 @@ export interface Rect {
 export interface VirtualGrid {
   cellWidth: number;
   cellHeight: number;
-  /** Total rows/columns of the full, unpaginated layout. */
+  /** Total rows/columns of the full, unpaginated layout (content extent, not page capacity). */
   rows: number;
   columns: number;
+  /** Configured columns/rows per page (`GridDensity`) — always drawn in full, regardless of content extent. */
+  pageColumns: number;
+  pageRows: number;
   pageSize: PageSize;
   margins: Margins;
   /** Drawable area within the page margins, before any per-page pagination cut. */
@@ -29,14 +33,15 @@ export interface VirtualGrid {
   /** 1-based row/col -> absolute rect within the virtual (unpaginated) grid. */
   cellRect(row: number, col: number): Rect;
   /**
-   * 1-based row/col -> the node's actual visual boundary, inset from the cell
-   * border by `nodeInset`. This is the single source of truth both node
-   * rendering and edge routing must anchor to, so connections always end
-   * exactly on the node border regardless of scale.
+   * 1-based row/col -> the node's actual visual boundary, centered within the
+   * cell and scaled to `nodeFillFactor` of the cell's own size. This is the
+   * single source of truth both node rendering and edge routing must anchor
+   * to, so connections always end exactly on the node border regardless of
+   * scale or density.
    */
   nodeRect(row: number, col: number): Rect;
-  /** Spacing between a node's visual box and its surrounding cell border, at current scale. */
-  nodeInset: number;
+  /** Fraction of a cell's width/height the node box fills; 1 = exactly the cell, per axis. */
+  nodeFillFactor: NodeFillFactor;
 }
 
 /** Converts a 1-based column index into spreadsheet-style letters: 1 -> A, 26 -> Z, 27 -> AA. */
@@ -88,13 +93,13 @@ export function groupRect(
 
 /**
  * Builds the virtual grid that every subsequent step (routing, pagination, render)
- * measures against. Cell size derives entirely from `config.scale` relative to
- * `REFERENCE_CELL_SIZE`; margins are fixed physical values independent of scale.
+ * measures against. Cell size is derived from the usable page area divided by
+ * the configured `GridDensity` (columns/rows), then scaled by `config.scale` —
+ * so at scale 1 exactly the configured number of columns/rows fill one page.
+ * Margins are fixed physical values that only change the usable area, never
+ * the column/row count itself.
  */
 export function buildGrid(layout: LayoutResult, config: RenderConfig): VirtualGrid {
-  const cellWidth = scaled(REFERENCE_CELL_SIZE.widthPt, config.scale);
-  const cellHeight = scaled(REFERENCE_CELL_SIZE.heightPt, config.scale);
-  const nodeInset = scaled(REFERENCE_NODE_INSET, config.scale);
   const pageSize = resolvePageSize(config.paper, config.orientation);
   const { margins } = config;
 
@@ -104,6 +109,11 @@ export function buildGrid(layout: LayoutResult, config: RenderConfig): VirtualGr
     width: pageSize.widthPt - margins.left - margins.right,
     height: pageSize.heightPt - margins.top - margins.bottom,
   };
+
+  const density = resolveGridDensity(config);
+  const cellWidth = scaled(usable.width / density.columns, config.scale);
+  const cellHeight = scaled(usable.height / density.rows, config.scale);
+  const nodeFillFactor = resolveNodeFillFactor(config);
 
   const cellRect = (row: number, col: number): Rect => ({
     x: usable.x + (col - 1) * cellWidth,
@@ -115,20 +125,24 @@ export function buildGrid(layout: LayoutResult, config: RenderConfig): VirtualGr
   return {
     cellWidth,
     cellHeight,
-    nodeInset,
+    nodeFillFactor,
     rows: layout.rows,
     columns: layout.cols,
+    pageColumns: density.columns,
+    pageRows: density.rows,
     pageSize,
     margins,
     usable,
     cellRect,
     nodeRect(row: number, col: number): Rect {
       const cell = cellRect(row, col);
+      const width = cell.width * nodeFillFactor.width;
+      const height = cell.height * nodeFillFactor.height;
       return {
-        x: cell.x + nodeInset,
-        y: cell.y + nodeInset,
-        width: cell.width - nodeInset * 2,
-        height: cell.height - nodeInset * 2,
+        x: cell.x + (cell.width - width) / 2,
+        y: cell.y + (cell.height - height) / 2,
+        width,
+        height,
       };
     },
   };

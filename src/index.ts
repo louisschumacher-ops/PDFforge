@@ -19,16 +19,29 @@ export type { VirtualGrid, Rect } from "./grid/index.js";
 export { routeEdges } from "./routing/index.js";
 export type { RoutedEdge, Point } from "./routing/index.js";
 
+export { paginate } from "./pagination/index.js";
+export type { PaginatedLayout, PageLayout, CrossPageContinuation } from "./pagination/index.js";
+
 export { renderDevPdf } from "./render/index.js";
 export type { RenderOptions } from "./render/index.js";
 
 export {
   DEFAULT_RENDER_CONFIG,
   DEFAULT_MARGINS,
-  REFERENCE_CELL_SIZE,
-  REFERENCE_NODE_INSET,
+  DEFAULT_GRID_DENSITY,
+  DEFAULT_NODE_FILL_FACTOR,
   REFERENCE_GROUP_PADDING,
   resolvePageSize,
+  resolveGridDensity,
+  resolveNodeFillFactor,
   scaled,
 } from "./config/index.js";
-export type { RenderConfig, Margins, PageSize, PaperFormat, Orientation } from "./config/index.js";
+export type {
+  RenderConfig,
+  Margins,
+  PageSize,
+  PaperFormat,
+  Orientation,
+  GridDensity,
+  NodeFillFactor,
+} from "./config/index.js";

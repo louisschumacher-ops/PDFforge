@@ -32,27 +32,50 @@ export interface Margins {
 /** Margins are fixed physical measurements (points) and do not move with `scale`. */
 export const DEFAULT_MARGINS: Margins = { top: 36, bottom: 36, left: 36, right: 36 };
 
-/**
- * Fixed node box size at the reference scale (100%), tuned so a node reads well
- * on an A4 page. This is the one thing that never shrinks: the surrounding grid
- * cell is derived from it (node size + 2x inset), so widening the inset only
- * grows the gap around a node, never the node itself.
- */
-export const REFERENCE_NODE_SIZE = { widthPt: 160, heightPt: 130 };
+export interface NodeFillFactor {
+  /** Fraction of a cell's width the node box fills; 1 = exactly the cell's width. */
+  width: number;
+  /** Fraction of a cell's height the node box fills; 1 = exactly the cell's height. */
+  height: number;
+}
 
 /**
- * Fixed spacing, at the reference scale, between a node's visual box and the
- * surrounding grid cell border. Scales together with `REFERENCE_NODE_SIZE`, and
- * is the single source of truth for where a node's actual boundary sits inside
- * its cell — both node rendering and edge routing anchor to it, so connections
- * always end exactly on the node border regardless of scale.
+ * How much of a grid cell a node's visual box fills, as a fraction of the
+ * cell's own width/height — 1 means the node exactly fills its cell on that
+ * axis (no gap at all), 0.85 leaves a 15% gap split evenly around it. Width
+ * and height are independent, e.g. a wide/flat node style vs a tall/narrow
+ * one, without changing the underlying cell or grid density. This is the
+ * single source of truth for where a node's actual boundary sits inside its
+ * cell — both node rendering and edge routing anchor to it, so connections
+ * always end exactly on the node border. Being a fraction of the cell rather
+ * than a fixed point size, the gap automatically scales with whatever the
+ * cell size happens to be (driven by `GridDensity` and paper format), instead
+ * of eating a fixed, ever-larger share of a shrinking cell.
  */
-export const REFERENCE_NODE_INSET = 40;
+export const DEFAULT_NODE_FILL_FACTOR: NodeFillFactor = { width: 0.85, height: 0.7 };
 
-/** Grid cell size, derived from the node's own size plus the inset on both sides. */
-export const REFERENCE_CELL_SIZE = {
-  widthPt: REFERENCE_NODE_SIZE.widthPt + REFERENCE_NODE_INSET * 2,
-  heightPt: REFERENCE_NODE_SIZE.heightPt + REFERENCE_NODE_INSET * 2,
+export interface GridDensity {
+  /** How many columns fill the usable page width at scale 1. */
+  columns: number;
+  /** How many rows fill the usable page height at scale 1. */
+  rows: number;
+}
+
+/**
+ * How many columns/rows fit exactly within one page's usable area at scale 1.
+ * This is the primary sizing lever: cell size is derived from usable area
+ * divided by this density (see `grid/index.ts`), not the other way around.
+ * Widening or shrinking the page margins only changes the usable area, and
+ * therefore only the resulting cell size — it never changes how many columns
+ * or rows are targeted. Overridable per render via `RenderConfig.gridDensity`;
+ * these are just the per-paper-format defaults.
+ */
+export const DEFAULT_GRID_DENSITY: Record<PaperFormat, GridDensity> = {
+  A5: { columns: 3, rows: 5 },
+  A4: { columns: 5, rows: 8 },
+  A3: { columns: 7, rows: 11 },
+  Letter: { columns: 5, rows: 8 },
+  Legal: { columns: 5, rows: 10 },
 };
 
 /**
@@ -70,6 +93,10 @@ export interface RenderConfig {
   orientation: Orientation;
   scale: number;
   margins: Margins;
+  /** Overrides the per-paper-format default from `DEFAULT_GRID_DENSITY`. */
+  gridDensity?: GridDensity;
+  /** Overrides `DEFAULT_NODE_FILL_FACTOR`; each axis is independent, 1 = fills the cell exactly on that axis. */
+  nodeFillFactor?: Partial<NodeFillFactor>;
 }
 
 export const DEFAULT_RENDER_CONFIG: RenderConfig = {
@@ -78,6 +105,17 @@ export const DEFAULT_RENDER_CONFIG: RenderConfig = {
   scale: REFERENCE_SCALE,
   margins: DEFAULT_MARGINS,
 };
+
+export function resolveNodeFillFactor(config: RenderConfig): NodeFillFactor {
+  return {
+    width: config.nodeFillFactor?.width ?? DEFAULT_NODE_FILL_FACTOR.width,
+    height: config.nodeFillFactor?.height ?? DEFAULT_NODE_FILL_FACTOR.height,
+  };
+}
+
+export function resolveGridDensity(config: RenderConfig): GridDensity {
+  return config.gridDensity ?? DEFAULT_GRID_DENSITY[config.paper];
+}
 
 export function scaled(basePt: number, scale: number): number {
   return basePt * scale;

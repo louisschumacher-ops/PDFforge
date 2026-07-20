@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildGrid, columnLabel, groupRect } from "./index.js";
 import {
+  DEFAULT_GRID_DENSITY,
+  DEFAULT_NODE_FILL_FACTOR,
   DEFAULT_RENDER_CONFIG,
-  REFERENCE_CELL_SIZE,
-  REFERENCE_NODE_INSET,
 } from "../config/index.js";
 import type { GridPosition, LayoutResult } from "../layout/index.js";
 
@@ -19,21 +19,41 @@ describe("columnLabel", () => {
 describe("buildGrid", () => {
   const layout: LayoutResult = { positions: new Map(), rows: 4, cols: 3 };
 
+  it("derives cell size from usable area divided by the configured grid density", () => {
+    const grid = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, scale: 1 });
+    const density = DEFAULT_GRID_DENSITY.A4;
+    expect(grid.cellWidth).toBeCloseTo(grid.usable.width / density.columns);
+    expect(grid.cellHeight).toBeCloseTo(grid.usable.height / density.rows);
+  });
+
   it("scales cell size linearly with the scale factor", () => {
     const grid100 = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, scale: 1 });
     const grid50 = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, scale: 0.5 });
-    expect(grid100.cellWidth).toBe(REFERENCE_CELL_SIZE.widthPt);
-    expect(grid50.cellWidth).toBe(REFERENCE_CELL_SIZE.widthPt * 0.5);
-    expect(grid50.cellHeight).toBe(grid100.cellHeight * 0.5);
+    expect(grid50.cellWidth).toBeCloseTo(grid100.cellWidth * 0.5);
+    expect(grid50.cellHeight).toBeCloseTo(grid100.cellHeight * 0.5);
   });
 
-  it("keeps identical layout across paper formats, only usable area changes", () => {
+  it("keeps the configured column/row count fixed across paper formats, only cell size changes", () => {
     const a4 = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, paper: "A4" });
     const letter = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, paper: "Letter" });
     expect(a4.rows).toBe(letter.rows);
     expect(a4.columns).toBe(letter.columns);
-    expect(a4.cellWidth).toBe(letter.cellWidth);
     expect(a4.usable.width).not.toBe(letter.usable.width);
+  });
+
+  it("shrinks only the grid, never the configured density, when margins grow", () => {
+    const tightMargins = buildGrid(layout, {
+      ...DEFAULT_RENDER_CONFIG,
+      margins: { top: 10, bottom: 10, left: 10, right: 10 },
+    });
+    const wideMargins = buildGrid(layout, {
+      ...DEFAULT_RENDER_CONFIG,
+      margins: { top: 100, bottom: 100, left: 100, right: 100 },
+    });
+    const density = DEFAULT_GRID_DENSITY[DEFAULT_RENDER_CONFIG.paper];
+    expect(wideMargins.cellWidth).toBeLessThan(tightMargins.cellWidth);
+    expect(wideMargins.cellWidth).toBeCloseTo(wideMargins.usable.width / density.columns);
+    expect(tightMargins.cellWidth).toBeCloseTo(tightMargins.usable.width / density.columns);
   });
 
   it("places cell (1,1) at the top-left of the usable area", () => {
@@ -51,15 +71,36 @@ describe("buildGrid", () => {
     expect(a.y - b.y).toBe(1 * grid.cellHeight);
   });
 
-  it("insets nodeRect from cellRect by nodeInset on every side, scaling with it", () => {
+  it("scales nodeRect as a fraction of cellRect, centered within it", () => {
     const grid = buildGrid(layout, { ...DEFAULT_RENDER_CONFIG, scale: 1 });
     const cell = grid.cellRect(2, 2);
     const node = grid.nodeRect(2, 2);
-    expect(grid.nodeInset).toBe(REFERENCE_NODE_INSET);
-    expect(node.x - cell.x).toBe(grid.nodeInset);
-    expect(node.y - cell.y).toBe(grid.nodeInset);
-    expect(cell.width - node.width).toBe(grid.nodeInset * 2);
-    expect(cell.height - node.height).toBe(grid.nodeInset * 2);
+    expect(grid.nodeFillFactor).toEqual(DEFAULT_NODE_FILL_FACTOR);
+    expect(node.width).toBeCloseTo(cell.width * DEFAULT_NODE_FILL_FACTOR.width);
+    expect(node.height).toBeCloseTo(cell.height * DEFAULT_NODE_FILL_FACTOR.height);
+    expect(node.x - cell.x).toBeCloseTo((cell.width - node.width) / 2);
+    expect(node.y - cell.y).toBeCloseTo((cell.height - node.height) / 2);
+  });
+
+  it("fills the cell exactly when nodeFillFactor is 1 on both axes", () => {
+    const grid = buildGrid(layout, {
+      ...DEFAULT_RENDER_CONFIG,
+      nodeFillFactor: { width: 1, height: 1 },
+    });
+    const cell = grid.cellRect(3, 1);
+    const node = grid.nodeRect(3, 1);
+    expect(node).toEqual(cell);
+  });
+
+  it("scales width and height independently", () => {
+    const grid = buildGrid(layout, {
+      ...DEFAULT_RENDER_CONFIG,
+      nodeFillFactor: { width: 1, height: 0.5 },
+    });
+    const cell = grid.cellRect(1, 1);
+    const node = grid.nodeRect(1, 1);
+    expect(node.width).toBeCloseTo(cell.width);
+    expect(node.height).toBeCloseTo(cell.height * 0.5);
   });
 });
 
