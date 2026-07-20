@@ -399,25 +399,27 @@ Nichtfunktionale Anforderungen
 
 Akzeptanzkriterien
 
-- Die JSON-Datei des NodeEditors kann vollständig eingelesen werden.
-- Positionen aus dem NodeEditor werden vollständig ignoriert.
-- Das Layout wird ausschließlich aus den logischen Verbindungen erzeugt.
-- Der Netzanschlusspunkt bildet die Root-Node des Layouts.
-- Jede Hierarchieebene entspricht genau einer Grid-Zeile.
-- Parallel angeschlossene Nodes werden horizontal nebeneinander angeordnet.
-- Jede Node wird genau einem Grid-Feld zugeordnet.
-- Das Grid ist vollständig skalierbar.
-- Alle Größen werden ausschließlich über den globalen Skalierungsfaktor berechnet.
-- Das Layout funktioniert unabhängig vom Papierformat.
-- Seitenränder sind getrennt konfigurierbar und werden bei allen Berechnungen berücksichtigt.
-- Es existieren ein Development Mode und ein Production Mode mit identischem Layout, aber unterschiedlicher Darstellung der Nodes.
-- Alle Verbindungen werden automatisch berechnet und korrekt dargestellt.
-- Gruppen werden möglichst vollständig zusammengehalten.
-- Die Pagination erfolgt erst nach Abschluss des Gesamtlayouts.
-- Seitenübergreifende Verbindungen werden automatisch erkannt.
-- Für jede seitenübergreifende Verbindung werden funktionierende PDF-Hyperlinks erzeugt.
-- Jede PDF-Seite besitzt ein dezentes Hintergrundgrid mit Zeilen- und Spaltenbeschriftung.
-- Das Ergebnis ist ein hochwertiges, druckbares und reproduzierbares PDF, das die logische Struktur des Netzwerks übersichtlich und konsistent darstellt.
+> Status-Audit (2026-07-20): ✅ = implementiert und getestet, ⏳ = noch offen.
+
+- ✅ Die JSON-Datei des NodeEditors kann vollständig eingelesen werden.
+- ✅ Positionen aus dem NodeEditor werden vollständig ignoriert.
+- ✅ Das Layout wird ausschließlich aus den logischen Verbindungen erzeugt.
+- ✅ Der Netzanschlusspunkt bildet die Root-Node des Layouts.
+- ✅ Jede Hierarchieebene entspricht genau einer Grid-Zeile.
+- ✅ Parallel angeschlossene Nodes werden horizontal nebeneinander angeordnet.
+- ✅ Jede Node wird genau einem Grid-Feld zugeordnet.
+- ✅ Das Grid ist vollständig skalierbar.
+- ✅ Alle Größen werden ausschließlich über den globalen Skalierungsfaktor berechnet.
+- ✅ Das Layout funktioniert unabhängig vom Papierformat (Ausnahme: siehe horizontale Pagination unten).
+- ✅ Seitenränder sind getrennt konfigurierbar und werden bei allen Berechnungen berücksichtigt.
+- ⏳ Es existieren ein Development Mode und ein Production Mode mit identischem Layout, aber unterschiedlicher Darstellung der Nodes. Aktuell existiert nur der Development Mode (`renderDevPdf`); Production Mode mit Symbol-Registry ist noch nicht gebaut.
+- ✅ Alle Verbindungen werden automatisch berechnet und korrekt dargestellt.
+- ✅ Gruppen werden möglichst vollständig zusammengehalten.
+- ✅ Die Pagination erfolgt erst nach Abschluss des Gesamtlayouts.
+- ✅ Seitenübergreifende Verbindungen werden automatisch erkannt.
+- ✅ Für jede seitenübergreifende Verbindung werden funktionierende PDF-Hyperlinks erzeugt.
+- ✅ Jede PDF-Seite besitzt ein dezentes Hintergrundgrid mit Zeilen- und Spaltenbeschriftung.
+- ✅ Das Ergebnis ist ein hochwertiges, druckbares und reproduzierbares PDF, das die logische Struktur des Netzwerks übersichtlich und konsistent darstellt.
 
 ⸻
 
@@ -445,9 +447,14 @@ Vertikale und horizontale Pagination müssen gemeinsam funktionieren. Ein hinrei
 
 Ergänzende Akzeptanzkriterien (Horizontale Pagination)
 
-- Zeilen mit mehr Nodes, als Spalten pro Seite zur Verfügung stehen, werden automatisch auf mehrere, horizontal aneinander anschließende Seiten verteilt.
-- Eine Node wird niemals horizontal geteilt; der Seitenumbruch erfolgt ausschließlich zwischen zwei Spalten.
-- Gruppen werden auch bei horizontaler Aufteilung möglichst vollständig zusammengehalten.
-- Für horizontal seitenübergreifende Verbindungen werden automatisch Navigationshinweise mit funktionierenden PDF-Hyperlinks erzeugt, analog zur vertikalen Pagination.
-- Vertikale und horizontale Pagination funktionieren gleichzeitig und erzeugen bei Bedarf ein zusammenhängendes Raster mehrerer Seiten.
-- Seitenübergreifende Verbindungen funktionieren korrekt unabhängig davon, ob die Zielseite oberhalb, unterhalb, links, rechts oder diagonal zur Ausgangsseite liegt.
+> Status-Audit (2026-07-20): Dieser gesamte Abschnitt ist ⏳ spezifiziert, aber noch nicht
+> implementiert. `src/pagination` schneidet aktuell ausschließlich zeilenweise (vertikal);
+> eine Zeile mit mehr Nodes als Spalten im konfigurierten Papierformat wird derzeit nicht
+> auf mehrere Seiten verteilt, sondern rendert einfach über die bedruckbare Breite hinaus.
+
+- ⏳ Zeilen mit mehr Nodes, als Spalten pro Seite zur Verfügung stehen, werden automatisch auf mehrere, horizontal aneinander anschließende Seiten verteilt.
+- ⏳ Eine Node wird niemals horizontal geteilt; der Seitenumbruch erfolgt ausschließlich zwischen zwei Spalten.
+- ⏳ Gruppen werden auch bei horizontaler Aufteilung möglichst vollständig zusammengehalten.
+- ⏳ Für horizontal seitenübergreifende Verbindungen werden automatisch Navigationshinweise mit funktionierenden PDF-Hyperlinks erzeugt, analog zur vertikalen Pagination.
+- ⏳ Vertikale und horizontale Pagination funktionieren gleichzeitig und erzeugen bei Bedarf ein zusammenhängendes Raster mehrerer Seiten.
+- ⏳ Seitenübergreifende Verbindungen funktionieren korrekt unabhängig davon, ob die Zielseite oberhalb, unterhalb, links, rechts oder diagonal zur Ausgangsseite liegt.
