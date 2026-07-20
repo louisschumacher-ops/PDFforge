@@ -46,7 +46,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.19.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",
